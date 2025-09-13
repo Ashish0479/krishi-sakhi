@@ -5,6 +5,8 @@ import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../redux/slices/authSlice";
 import { fetchWeather } from "../redux/slices/weatherSlice";
 import { sendMessage } from "../redux/slices/chatbotSlice";
+import { analyzeCropHealth, resetCropHealth } from "../redux/slices/cropHealthSlice";
+import ReactMarkdown from "react-markdown";
 
 
 import {
@@ -71,6 +73,21 @@ export default function FarmerDashboard() {
       dispatch(sendMessage({ message: inputText }));
       setInputText(''); }
   };
+
+
+    const [image, setImage] = useState(null);
+  const [language, setLanguage] = useState("English");
+  
+  const { loading, cropHealthReport, error } = useSelector((state) => state.cropHealth);
+
+ const handleCropHealthSubmit = (e) => {
+    e.preventDefault();
+    if (image) {
+      dispatch(analyzeCropHealth({ imageFile: image, language }));
+    }
+  };
+
+
 
 
   useEffect(() => {
@@ -387,27 +404,66 @@ export default function FarmerDashboard() {
           </section>
 
           {/* Crop Health */}
-          <section className="bg-white/95 rounded-2xl shadow-sm border border-black/5 p-6 mb-6">
-            <h2 className="text-xl font-bold mb-4">📸 Crop Health Check</h2>
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-              <div className="flex items-center gap-3">
-                <Camera className="w-10 h-10 text-gray-600" />
-                <label className="border-2 border-dashed rounded-xl px-4 py-6 text-center text-gray-600 cursor-pointer hover:bg-gray-50">
-                  <input type="file" accept="image/*" className="hidden" />
-                  <div className="text-sm">
-                    <strong>Upload</strong> or drag image here
-                    <div className="text-xs text-gray-500">
-                      Detect diseases & get treatment
-                    </div>
-                  </div>
-                </label>
-              </div>
-              <button className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700">
-                Analyze Photo
-              </button>
-            </div>
-          </section>
+          
 
+<section className="bg-white/95 rounded-2xl shadow-sm border border-black/5 p-6 mb-6">
+  <h2 className="text-xl font-bold mb-4">📸 Crop Health Check</h2>
+
+  <form
+    onSubmit={handleCropHealthSubmit}
+    className="flex flex-col sm:flex-row items-start sm:items-center gap-4"
+  >
+    {/* Upload */}
+    <div className="flex items-center gap-3">
+      <Camera className="w-10 h-10 text-gray-600" />
+      <label className="border-2 border-dashed rounded-xl px-4 py-6 text-center text-gray-600 cursor-pointer hover:bg-gray-50">
+        <input
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => setImage(e.target.files[0])}
+        />
+        <div className="text-sm">
+          <strong>Upload</strong> or drag image here
+          <div className="text-xs text-gray-500">
+            Detect diseases & get treatment
+          </div>
+        </div>
+      </label>
+    </div>
+
+    {/* Language */}
+    <select
+      value={language}
+      onChange={(e) => setLanguage(e.target.value)}
+      className="px-3 py-2 rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
+    >
+      <option value="English">English</option>
+      <option value="Malayalam">Malayalam</option>
+    </select>
+
+    {/* Button */}
+    <button
+      type="submit"
+      disabled={loading}
+      className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
+    >
+      {loading ? "Analyzing..." : "Analyze Photo"}
+    </button>
+  </form>
+
+  {/* Report */}
+  {cropHealthReport && (
+    <div className="mt-6 bg-gray-50 border border-gray-200 rounded-xl p-5 space-y-4 prose prose-sm max-w-none">
+      <ReactMarkdown>{cropHealthReport}</ReactMarkdown>
+    </div>
+  )}
+
+  {/* Error */}
+  {error && <p className="mt-4 text-red-600 font-medium">❌ {error}</p>}
+</section>
+
+         
           {/* Mandi Prices */}
           <section className="bg-white/95 rounded-2xl shadow-sm border border-black/5 p-6 mb-6">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
