@@ -1,9 +1,11 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useDispatch,useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../redux/slices/authSlice";
 import { fetchWeather } from "../redux/slices/weatherSlice";
+import { sendMessage } from "../redux/slices/chatbotSlice";
+
 
 import {
   CloudRain,
@@ -23,6 +25,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import farmland from "../assets/farmland.jpg";
+import { set } from "react-hook-form";
 
 const navItems = [
   { key: "dashboard", label: "Dashboard", icon: TrendingUp },
@@ -32,6 +35,7 @@ const navItems = [
   { key: "schemes", label: "Govt Schemes", icon: Landmark },
   { key: "reminders", label: "Reminders", icon: Bell },
   { key: "chatbot", label: "Chatbot", icon: MessageCircle },
+  {key:"Community", label:"Community", icon: User},
 ];
 
 export default function FarmerDashboard() {
@@ -45,6 +49,8 @@ export default function FarmerDashboard() {
   const notifRef = useRef(null);
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const [chatbotOpen, setChatbotOpen] = useState(false);
+
 
 
   async function handleLogout(e) {
@@ -53,6 +59,18 @@ export default function FarmerDashboard() {
     navigate("/");
     setIsOpen(false);
   }
+  const chatbotResponse = useSelector((state) => state.chatbot.messages.slice(-1)[0]?.aiReply || '');
+
+
+  const { messages, loading: chatbotLoading } = useSelector((state) => state.chatbot); 
+  const [inputText, setInputText] = useState(''); 
+
+
+  const handleChatSubmit = () => {
+    if (inputText.trim()) {
+      dispatch(sendMessage({ message: inputText }));
+      setInputText(''); }
+  };
 
 
   useEffect(() => {
@@ -74,11 +92,11 @@ export default function FarmerDashboard() {
     []
   );
 
-  const { data: weather, loading, error } = useSelector((state) => state.weather);
+  const { data: weather, loading: weatherLoading, error: weatherError } = useSelector((state) => state.weather);
 
-  
+
   useEffect(() => {
-    
+
     dispatch(fetchWeather({ city: "munnar,kerala" }));
 
     navigator.geolocation.getCurrentPosition((pos) => {
@@ -92,20 +110,20 @@ export default function FarmerDashboard() {
       className="min-h-screen bg-fixed bg-cover bg-center flex relative"
       style={{ backgroundImage: `url(${farmland})` }}
     >
-    
+
       <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/10 to-black/20 pointer-events-none" />
 
-   
+
       <aside
         className={`fixed top-0 left-0 h-full w-72 bg-green-700/95 text-white flex flex-col z-30 transform transition-transform duration-300
         ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}
       >
-       
+
         <div className="px-6 h-16 flex items-center justify-between border-b border-white/10">
           <div className="text-2xl font-extrabold tracking-wide flex items-center gap-2">
             🌾 <span>Krishi Sakhi</span>
           </div>
-        
+
           <button
             className="md:hidden p-2 rounded hover:bg-white/10"
             onClick={() => setSidebarOpen(false)}
@@ -115,7 +133,7 @@ export default function FarmerDashboard() {
           </button>
         </div>
 
-        
+
         <nav className="px-3 py-4 space-y-1">
           {navItems.map(({ key, label, icon: Icon }) => {
             const isActive = active === key;
@@ -123,6 +141,8 @@ export default function FarmerDashboard() {
               <button
                 key={key}
                 onClick={() => {
+                  key === "chatbot" ? setChatbotOpen(true) : console.log("Navigate:", key);
+                  key==="Community"? navigate("/community") : null;
                   setActive(key);
                   setSidebarOpen(false);
                 }}
@@ -143,8 +163,8 @@ export default function FarmerDashboard() {
               <Settings className="w-5 h-5" />
               <span>Settings</span>
             </button>
-            <button className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/10">
-              <LogOut className="w-5 h-5" onClick={handleLogout} />
+            <button className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/10" onClick={handleLogout}>
+              <LogOut className="w-5 h-5" />
               <span>Logout</span>
             </button>
           </div>
@@ -272,7 +292,7 @@ export default function FarmerDashboard() {
                       <Settings className="w-4 h-4" /> Settings
                     </button>
                     <div className="border-t" />
-                    <button className="w-full text-left px-4 py-3 text-sm hover:bg-gray-50 text-red-600 flex items-center gap-2">
+                    <button className="w-full text-left px-4 py-3 text-sm hover:bg-gray-50 text-red-600 flex items-center gap-2" onClick={handleLogout}>
                       <LogOut className="w-4 h-4" /> Logout
                     </button>
                   </motion.div>
@@ -293,9 +313,9 @@ export default function FarmerDashboard() {
                   <CloudRain className="text-blue-500 w-8 h-8 mr-3" />
                   <div>
                     <h2 className="font-semibold">Weather Alert</h2>
-                    {loading ? (
+                    {weatherLoading ? (
                       <p className="text-sm text-gray-600">Loading weather...</p>
-                    ) : error ? (
+                    ) : weatherError ? (
                       <p className="text-sm text-red-500">Error: {error}</p>
                     ) : weather ? (
                       <p className="text-sm text-gray-600">
@@ -459,30 +479,74 @@ export default function FarmerDashboard() {
           </section>
 
           {/* AI Chatbot */}
-          <section className="bg-white/95 rounded-2xl shadow-sm border border-black/5 p-6">
-            <h2 className="text-xl font-bold mb-4 flex items-center">
-              <MessageCircle className="w-6 h-6 mr-2 text-green-600" /> Ask Krishi
-              Sakhi
-            </h2>
-            <div className="border rounded-xl p-3 h-44 overflow-y-auto mb-3 bg-gray-50">
-              <p className="text-sm text-gray-700">
-                <strong>Farmer:</strong> Aaj irrigation karna hai kya?
-              </p>
-              <p className="text-sm text-green-700">
-                <strong>AI:</strong> Nahi, kal barish hone wali hai. Abhi rok lo.
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                placeholder="Type your question..."
-                className="flex-1 border rounded-lg p-2"
-              />
-              <button className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700">
-                Send
+          {/* Floating Chatbot */}
+          <div className="fixed bottom-6 right-6 z-50">
+            {/* Chatbot Panel */}
+            <AnimatePresence>
+              {chatbotOpen && (
+                <motion.div
+                  // ... your motion.div props
+                  className="w-80 h-96 bg-white rounded-2xl shadow-xl border border-gray-200 flex flex-col overflow-hidden"
+                >
+                  {/* Header */}
+                  <div className="flex items-center justify-between px-4 py-2 bg-green-600 text-white">
+                    <span className="font-semibold">🌾 Krishi Sakhi</span>
+                    <button onClick={() => setChatbotOpen(false)}>
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  {/* Chat Messages */}
+                  <div className="flex-1 p-3 overflow-y-auto bg-gray-50 text-sm space-y-2">
+                   <div><p ><p className="bg-green-600 w-16">Krishi ai:</p> {chatbotResponse}</p></div>
+                  </div>
+
+                  {/* Input */}
+                  <div className="p-2 border-t flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Type your question..."
+                      className="flex-1 border rounded-lg p-2 text-sm"
+                      value={inputText} // Connect input value to state
+                      onChange={(e) => setInputText(e.target.value)} // Update state on change
+                      onKeyPress={(e) => { // Optional: Send on Enter key
+                        if (e.key === 'Enter') {
+                          handleChatSubmit();
+                        }
+                      }}
+                    />
+                    
+                    <button
+                      className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700"
+                      onClick={handleChatSubmit}
+                      disabled={chatbotLoading} // Disable button while API call is in progress
+                    >
+                      {chatbotLoading ? 'Sending...' : 'Send'}
+                    </button>
+                  </div>
+                  
+                </motion.div>
+              )}
+            </AnimatePresence>
+            {/* Floating Button */}
+            <div className="relative">
+              <button
+                onClick={() => setChatbotOpen((prev) => !prev)}
+                className="flex items-center gap-2 px-4 py-3 rounded-full bg-gradient-to-r from-green-600 to-green-500 shadow-xl text-white font-semibold hover:from-green-700 hover:to-green-600 transition transform hover:scale-105 animate-bounce relative overflow-hidden"
+              >
+                <MessageCircle className="w-6 h-6" />
+                <span className="hidden sm:block">Ask Krishi AI</span>
+
+                {/* Sparkles inside button */}
+                <span className="absolute top-1 left-3 w-1.5 h-1.5 bg-white rounded-full animate-ping"></span>
+                <span className="absolute bottom-2 right-4 w-1 h-1 bg-yellow-300 rounded-full animate-pulse"></span>
+                <span className="absolute top-3 right-6 w-1.5 h-1.5 bg-white rounded-full animate-bounce"></span>
               </button>
             </div>
-          </section>
+
+
+          </div>
+
         </main>
       </div>
     </div>

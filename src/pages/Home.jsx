@@ -182,7 +182,7 @@ export default function Home() {
         <div className="bg-white/30 backdrop-blur-lg text-black p-10 rounded-2xl max-w-3xl text-center">
           <h2 className="text-4xl font-bold mb-6">{t('join.title')}</h2>
           <p className="text-lg leading-relaxed mb-6">{t('join.desc')}</p>
-          <button className="px-8 py-3 bg-green-600 text-white rounded-full hover:bg-green-700 transition">
+          <button className="px-8 py-3 bg-green-600 text-white rounded-full hover:bg-green-700 transition " onClick={() => navigate('/signUp')}>
             {t('join.btn')}
           </button>
         </div>
