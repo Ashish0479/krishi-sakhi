@@ -1,4 +1,3 @@
-
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
@@ -6,8 +5,8 @@ import { logout } from "../redux/slices/authSlice";
 import { fetchWeather } from "../redux/slices/weatherSlice";
 import { sendMessage } from "../redux/slices/chatbotSlice";
 import { analyzeCropHealth, resetCropHealth } from "../redux/slices/cropHealthSlice";
+import { fetchUserProfile } from "../redux/slices/profileSlice";
 import ReactMarkdown from "react-markdown";
-
 
 import {
   CloudRain,
@@ -27,7 +26,6 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import farmland from "../assets/farmland.jpg";
-import { set } from "react-hook-form";
 
 const navItems = [
   { key: "dashboard", label: "Dashboard", icon: TrendingUp },
@@ -37,7 +35,7 @@ const navItems = [
   { key: "schemes", label: "Govt Schemes", icon: Landmark },
   { key: "reminders", label: "Reminders", icon: Bell },
   { key: "chatbot", label: "Chatbot", icon: MessageCircle },
-  {key:"Community", label:"Community", icon: User},
+  { key: "Community", label: "Community", icon: User },
 ];
 
 export default function FarmerDashboard() {
@@ -52,43 +50,60 @@ export default function FarmerDashboard() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const [chatbotOpen, setChatbotOpen] = useState(false);
+  const [isManualWeatherInput, setIsManualWeatherInput] = useState(false);
+  const [manualCity, setManualCity] = useState('');
+  const weatherInfo = useSelector((state) => state.weather.data);
+const profile = useSelector((state) => state.profile.user);
 
 
+  const { user } = useSelector((state) => state.profile);
+
+  const [formData, setFormData] = useState({});
+
+  useEffect(() => {
+    dispatch(fetchUserProfile());
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (user) setFormData(user);
+  }, [user]);
 
   async function handleLogout(e) {
     e.preventDefault();
     dispatch(logout());
     navigate("/");
-    setIsOpen(false);
   }
+
   const chatbotResponse = useSelector((state) => state.chatbot.messages.slice(-1)[0]?.aiReply || '');
+  const { loading: chatbotLoading } = useSelector((state) => state.chatbot);
+  const [inputText, setInputText] = useState('');
 
-
-  const { messages, loading: chatbotLoading } = useSelector((state) => state.chatbot); 
-  const [inputText, setInputText] = useState(''); 
-
+  const cityMain = navigator.geolocation.getCurrentPosition((pos) => {
+          dispatch(fetchWeather({ lat: pos.coords.latitude, lon: pos.coords.longitude }));
+        },
+        (error) => {
+          console.error('Geolocation failed, falling back to default:', error);
+          dispatch(fetchWeather({ cityMain: "munnar,kerala" }));
+        });
 
   const handleChatSubmit = () => {
     if (inputText.trim()) {
-      dispatch(sendMessage({ message: inputText }));
-      setInputText(''); }
+      dispatch(sendMessage({ message: inputText, image: null, weatherInfo, profile, city: cityMain }));
+      setInputText('');
+    }
   };
 
-
-    const [image, setImage] = useState(null);
+  const [image, setImage] = useState(null);
   const [language, setLanguage] = useState("English");
-  
+
   const { loading, cropHealthReport, error } = useSelector((state) => state.cropHealth);
 
- const handleCropHealthSubmit = (e) => {
+  const handleCropHealthSubmit = (e) => {
     e.preventDefault();
     if (image) {
       dispatch(analyzeCropHealth({ imageFile: image, language }));
     }
   };
-
-
-
 
   useEffect(() => {
     const handler = (e) => {
@@ -103,7 +118,6 @@ export default function FarmerDashboard() {
     return () => window.removeEventListener("click", handler);
   }, []);
 
-
   const mandiSparkline = useMemo(
     () => [20, 28, 24, 30, 34, 31, 36, 40, 37, 42, 45],
     []
@@ -111,31 +125,31 @@ export default function FarmerDashboard() {
 
   const { data: weather, loading: weatherLoading, error: weatherError } = useSelector((state) => state.weather);
 
-
   useEffect(() => {
-
-    dispatch(fetchWeather({ city: "munnar,kerala" }));
-
-    navigator.geolocation.getCurrentPosition((pos) => {
-      dispatch(fetchWeather({ lat: pos.coords.latitude, lon: pos.coords.longitude }));
-    });
-  }, [dispatch]);
-
+    if (!manualCity) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          dispatch(fetchWeather({ lat: pos.coords.latitude, lon: pos.coords.longitude }));
+        },
+        (error) => {
+          console.error('Geolocation failed, falling back to default:', error);
+          dispatch(fetchWeather({ city: "munnar,kerala" }));
+        }
+      );
+    }
+  }, [dispatch, manualCity]);
 
   return (
     <div
       className="min-h-screen bg-fixed bg-cover bg-center flex relative"
       style={{ backgroundImage: `url(${farmland})` }}
     >
-
       <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/10 to-black/20 pointer-events-none" />
-
 
       <aside
         className={`fixed top-0 left-0 h-full w-72 bg-green-700/95 text-white flex flex-col z-30 transform transition-transform duration-300
         ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}
       >
-
         <div className="px-6 h-16 flex items-center justify-between border-b border-white/10">
           <div className="text-2xl font-extrabold tracking-wide flex items-center gap-2">
             🌾 <span>Krishi Sakhi</span>
@@ -150,7 +164,6 @@ export default function FarmerDashboard() {
           </button>
         </div>
 
-
         <nav className="px-3 py-4 space-y-1">
           {navItems.map(({ key, label, icon: Icon }) => {
             const isActive = active === key;
@@ -159,7 +172,7 @@ export default function FarmerDashboard() {
                 key={key}
                 onClick={() => {
                   key === "chatbot" ? setChatbotOpen(true) : console.log("Navigate:", key);
-                  key==="Community"? navigate("/community") : null;
+                  key === "Community" ? navigate("/community") : null;
                   setActive(key);
                   setSidebarOpen(false);
                 }}
@@ -173,7 +186,6 @@ export default function FarmerDashboard() {
           })}
         </nav>
 
-        {/* Footer actions */}
         <div className="mt-auto p-4 border-t border-white/10">
           <div className="flex items-center justify-between">
             <button className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/10">
@@ -188,12 +200,9 @@ export default function FarmerDashboard() {
         </div>
       </aside>
 
-      {/* Main */}
       <div className="flex-1 flex flex-col ml-0 md:ml-72 relative z-10">
-        {/* Navbar */}
         <header className="h-16 px-4 md:px-6 flex items-center justify-between bg-white/90 shadow-sm">
           <div className="flex items-center gap-2 md:gap-4">
-            {/* Mobile Menu */}
             <button
               className="md:hidden p-2 rounded-md hover:bg-gray-100"
               onClick={() => setSidebarOpen((s) => !s)}
@@ -202,12 +211,10 @@ export default function FarmerDashboard() {
               <Menu className="w-6 h-6" />
             </button>
 
-            {/* Page Title */}
             <h1 className="text-xl md:text-2xl font-bold text-green-800">
               Farmer Dashboard
             </h1>
 
-            {/* Search */}
             <div className="hidden lg:flex items-center gap-2 ml-4">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -221,9 +228,7 @@ export default function FarmerDashboard() {
             </div>
           </div>
 
-          {/* Right actions */}
           <div className="flex items-center gap-1">
-            {/* Notifications */}
             <div className="relative" ref={notifRef}>
               <button
                 onClick={(e) => {
@@ -273,7 +278,6 @@ export default function FarmerDashboard() {
               </AnimatePresence>
             </div>
 
-            {/* Profile */}
             <div className="relative" ref={profileRef}>
               <button
                 onClick={(e) => {
@@ -284,11 +288,11 @@ export default function FarmerDashboard() {
                 className="ml-1 pl-2 pr-3 py-1.5 rounded-lg hover:bg-gray-100 flex items-center gap-2"
               >
                 <div className="w-8 h-8 rounded-full bg-green-600 text-white grid place-items-center">
-                  A
+                  {formData.name ? formData.name.charAt(0).toUpperCase() : 'A'}
                 </div>
                 <div className="hidden sm:flex flex-col items-start leading-tight">
-                  <span className="text-sm font-semibold">Ashish</span>
-                  <span className="text-xs text-gray-500">Premium</span>
+                  <span className="text-sm font-semibold">{formData.name}</span>
+                  <span className="text-xs text-gray-500">{formData.email}</span>
                 </div>
                 <ChevronDown className="w-4 h-4 text-gray-500 hidden sm:block" />
               </button>
@@ -302,7 +306,7 @@ export default function FarmerDashboard() {
                     transition={{ duration: 0.18 }}
                     className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden z-20"
                   >
-                    <button className="w-full text-left px-4 py-3 text-sm hover:bg-gray-50 flex items-center gap-2">
+                    <button className="w-full text-left px-4 py-3 text-sm hover:bg-gray-50 flex items-center gap-2" onClick={() => navigate("/profile")}>
                       <User className="w-4 h-4" /> View Profile
                     </button>
                     <button className="w-full text-left px-4 py-3 text-sm hover:bg-gray-50 flex items-center gap-2">
@@ -319,24 +323,59 @@ export default function FarmerDashboard() {
           </div>
         </header>
 
-        {/* Content */}
         <main className="p-4 md:p-6 flex-1 overflow-y-auto">
-          {/* Top Alerts */}
           <section className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <HoverCard>
               <div className="p-4">
-                {/* Weather Card */}
                 <div className="flex items-center bg-white p-4 rounded-lg shadow">
                   <CloudRain className="text-blue-500 w-8 h-8 mr-3" />
-                  <div>
-                    <h2 className="font-semibold">Weather Alert</h2>
-                    {weatherLoading ? (
+                  <div className="flex-1">
+                    <div className="flex justify-between items-center">
+                      <h2 className="font-semibold">Weather Alert</h2>
+                      <button
+                        onClick={() => setIsManualWeatherInput(!isManualWeatherInput)}
+                        className="text-gray-500 hover:text-green-600 transition"
+                        aria-label="Set custom city"
+                      >
+                        <Search size={16} />
+                      </button>
+                    </div>
+
+                    {isManualWeatherInput ? (
+                      <div className="flex gap-2 mt-1">
+                        <input
+                          type="text"
+                          value={manualCity}
+                          onChange={(e) => setManualCity(e.target.value)}
+                          placeholder="Enter city name..."
+                          className="border rounded-md text-sm px-2 py-1 w-full focus:outline-none focus:ring-1 focus:ring-green-500"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && manualCity) {
+                              dispatch(fetchWeather({ city: manualCity }));
+                              setIsManualWeatherInput(false);
+                            }
+                          }}
+                        />
+                        <button
+                          onClick={() => {
+                            if (manualCity) {
+                              dispatch(fetchWeather({ city: manualCity }));
+                              setIsManualWeatherInput(false);
+                            }
+                          }}
+                          className="bg-green-600 text-white text-sm px-3 py-1 rounded-md hover:bg-green-700 transition"
+                        >
+                          Set
+                        </button>
+                      </div>
+                    ) : weatherLoading ? (
                       <p className="text-sm text-gray-600">Loading weather...</p>
                     ) : weatherError ? (
-                      <p className="text-sm text-red-500">Error: {error}</p>
+                      <p className="text-sm text-red-500">Error: {weatherError}</p>
                     ) : weather ? (
                       <p className="text-sm text-gray-600">
-                        {weather.city}
+                        <span className="font-medium">{weather.city}</span>
+                        <br />
                         🌡 {weather.temp}°C — {weather.condition} ({weather.description})
                       </p>
                     ) : (
@@ -345,7 +384,6 @@ export default function FarmerDashboard() {
                   </div>
                 </div>
               </div>
-
             </HoverCard>
 
             <HoverCard>
@@ -373,7 +411,6 @@ export default function FarmerDashboard() {
             </HoverCard>
           </section>
 
-          {/* Crop Tracking */}
           <section className="bg-white/95 rounded-2xl shadow-sm border border-black/5 p-6 mb-6">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
               <h2 className="text-xl font-bold">🌱 Crop Tracking</h2>
@@ -403,68 +440,58 @@ export default function FarmerDashboard() {
             </div>
           </section>
 
-          {/* Crop Health */}
-          
+          <section className="bg-white/95 rounded-2xl shadow-sm border border-black/5 p-6 mb-6">
+            <h2 className="text-xl font-bold mb-4">📸 Crop Health Check</h2>
 
-<section className="bg-white/95 rounded-2xl shadow-sm border border-black/5 p-6 mb-6">
-  <h2 className="text-xl font-bold mb-4">📸 Crop Health Check</h2>
+            <form
+              onSubmit={handleCropHealthSubmit}
+              className="flex flex-col sm:flex-row items-start sm:items-center gap-4"
+            >
+              <div className="flex items-center gap-3">
+                <Camera className="w-10 h-10 text-gray-600" />
+                <label className="border-2 border-dashed rounded-xl px-4 py-6 text-center text-gray-600 cursor-pointer hover:bg-gray-50">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => setImage(e.target.files[0])}
+                  />
+                  <div className="text-sm">
+                    <strong>Upload</strong> or drag image here
+                    <div className="text-xs text-gray-500">
+                      Detect diseases & get treatment
+                    </div>
+                  </div>
+                </label>
+              </div>
 
-  <form
-    onSubmit={handleCropHealthSubmit}
-    className="flex flex-col sm:flex-row items-start sm:items-center gap-4"
-  >
-    {/* Upload */}
-    <div className="flex items-center gap-3">
-      <Camera className="w-10 h-10 text-gray-600" />
-      <label className="border-2 border-dashed rounded-xl px-4 py-6 text-center text-gray-600 cursor-pointer hover:bg-gray-50">
-        <input
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(e) => setImage(e.target.files[0])}
-        />
-        <div className="text-sm">
-          <strong>Upload</strong> or drag image here
-          <div className="text-xs text-gray-500">
-            Detect diseases & get treatment
-          </div>
-        </div>
-      </label>
-    </div>
+              <select
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
+                className="px-3 py-2 rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
+              >
+                <option value="English">English</option>
+                <option value="Malayalam">Malayalam</option>
+              </select>
 
-    {/* Language */}
-    <select
-      value={language}
-      onChange={(e) => setLanguage(e.target.value)}
-      className="px-3 py-2 rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
-    >
-      <option value="English">English</option>
-      <option value="Malayalam">Malayalam</option>
-    </select>
+              <button
+                type="submit"
+                disabled={loading}
+                className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
+              >
+                {loading ? "Analyzing..." : "Analyze Photo"}
+              </button>
+            </form>
 
-    {/* Button */}
-    <button
-      type="submit"
-      disabled={loading}
-      className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
-    >
-      {loading ? "Analyzing..." : "Analyze Photo"}
-    </button>
-  </form>
+            {cropHealthReport && (
+              <div className="mt-6 bg-gray-50 border border-gray-200 rounded-xl p-5 space-y-4 prose prose-sm max-w-none">
+                <ReactMarkdown>{cropHealthReport}</ReactMarkdown>
+              </div>
+            )}
 
-  {/* Report */}
-  {cropHealthReport && (
-    <div className="mt-6 bg-gray-50 border border-gray-200 rounded-xl p-5 space-y-4 prose prose-sm max-w-none">
-      <ReactMarkdown>{cropHealthReport}</ReactMarkdown>
-    </div>
-  )}
+            {error && <p className="mt-4 text-red-600 font-medium">❌ {error}</p>}
+          </section>
 
-  {/* Error */}
-  {error && <p className="mt-4 text-red-600 font-medium">❌ {error}</p>}
-</section>
-
-         
-          {/* Mandi Prices */}
           <section className="bg-white/95 rounded-2xl shadow-sm border border-black/5 p-6 mb-6">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
               <h2 className="text-xl font-bold">📊 Mandi Prices</h2>
@@ -513,7 +540,6 @@ export default function FarmerDashboard() {
             </div>
           </section>
 
-          {/* Govt Schemes */}
           <section className="bg-white/95 rounded-2xl shadow-sm border border-black/5 p-6 mb-6">
             <h2 className="text-xl font-bold mb-4 flex items-center">
               <Landmark className="w-6 h-6 mr-2 text-green-600" /> Govt Schemes
@@ -534,57 +560,54 @@ export default function FarmerDashboard() {
             </ul>
           </section>
 
-          {/* AI Chatbot */}
-          {/* Floating Chatbot */}
           <div className="fixed bottom-6 right-6 z-50">
-            {/* Chatbot Panel */}
             <AnimatePresence>
               {chatbotOpen && (
                 <motion.div
-                  // ... your motion.div props
+                  initial={{ opacity: 0, y: 50, scale: 0.9 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 50, scale: 0.9 }}
+                  transition={{ type: "spring", stiffness: 120, damping: 15 }}
                   className="w-80 h-96 bg-white rounded-2xl shadow-xl border border-gray-200 flex flex-col overflow-hidden"
                 >
-                  {/* Header */}
                   <div className="flex items-center justify-between px-4 py-2 bg-green-600 text-white">
                     <span className="font-semibold">🌾 Krishi Sakhi</span>
                     <button onClick={() => setChatbotOpen(false)}>
                       <X className="w-5 h-5" />
                     </button>
                   </div>
-
-                  {/* Chat Messages */}
                   <div className="flex-1 p-3 overflow-y-auto bg-gray-50 text-sm space-y-2">
-                   <div><p ><p className="bg-green-600 w-16">Krishi ai:</p> {chatbotResponse}</p></div>
+                    <div>
+                      <p>
+                        <span className="bg-green-600 text-white px-2 py-1 rounded-md text-xs mr-2">Krishi AI</span>
+                        {chatbotResponse}
+                      </p>
+                    </div>
                   </div>
-
-                  {/* Input */}
                   <div className="p-2 border-t flex gap-2">
                     <input
                       type="text"
                       placeholder="Type your question..."
                       className="flex-1 border rounded-lg p-2 text-sm"
-                      value={inputText} // Connect input value to state
-                      onChange={(e) => setInputText(e.target.value)} // Update state on change
-                      onKeyPress={(e) => { // Optional: Send on Enter key
+                      value={inputText}
+                      onChange={(e) => setInputText(e.target.value)}
+                      onKeyPress={(e) => {
                         if (e.key === 'Enter') {
                           handleChatSubmit();
                         }
                       }}
                     />
-                    
                     <button
                       className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700"
                       onClick={handleChatSubmit}
-                      disabled={chatbotLoading} // Disable button while API call is in progress
+                      disabled={chatbotLoading}
                     >
                       {chatbotLoading ? 'Sending...' : 'Send'}
                     </button>
                   </div>
-                  
                 </motion.div>
               )}
             </AnimatePresence>
-            {/* Floating Button */}
             <div className="relative">
               <button
                 onClick={() => setChatbotOpen((prev) => !prev)}
@@ -592,24 +615,17 @@ export default function FarmerDashboard() {
               >
                 <MessageCircle className="w-6 h-6" />
                 <span className="hidden sm:block">Ask Krishi AI</span>
-
-                {/* Sparkles inside button */}
                 <span className="absolute top-1 left-3 w-1.5 h-1.5 bg-white rounded-full animate-ping"></span>
                 <span className="absolute bottom-2 right-4 w-1 h-1 bg-yellow-300 rounded-full animate-pulse"></span>
                 <span className="absolute top-3 right-6 w-1.5 h-1.5 bg-white rounded-full animate-bounce"></span>
               </button>
             </div>
-
-
           </div>
-
         </main>
       </div>
     </div>
   );
 }
-
-
 
 function HoverCard({ children }) {
   return (
@@ -664,7 +680,6 @@ function SchemeItem({ title, desc }) {
 }
 
 function Sparkline({ data = [], label = "" }) {
-
   const w = 320;
   const h = 70;
   const pad = 6;

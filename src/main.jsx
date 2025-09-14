@@ -13,7 +13,18 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <Provider store={store}>
       <BrowserRouter>
         <App />
-        <Toaster position="top-right" reverseOrder={false} />
+         <Toaster
+        position="top-center"
+        toastOptions={{
+          style: {
+            background: "#fff",
+            color: "#333",
+            borderRadius: "8px",
+            padding: "12px",
+            fontSize: "14px",
+          },
+        }}
+      />
       </BrowserRouter>
     </Provider>
   </React.StrictMode>

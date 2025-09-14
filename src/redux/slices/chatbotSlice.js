@@ -2,7 +2,7 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axiosInstance from "../../api/axios";
 import toast from "react-hot-toast";
 
-// Local storage se pichle messages load karo (agar hon)
+
 let storedMessages = [];
 try {
   const savedMessages = localStorage.getItem("chatMessages");
@@ -15,27 +15,29 @@ try {
 }
 
 const initialState = {
-  messages: storedMessages, // {farmerMessage, aiReply}
+  messages: storedMessages, 
   loading: false,
   error: null,
 };
 
-// Thunk: send farmer's message to backend
+
 export const sendMessage = createAsyncThunk(
   "chatbot/sendMessage",
-  async ({ message, image }, { rejectWithValue }) => {
+  async ({ message, weatherInfo, profile,city }, { rejectWithValue }) => {
     try {
-      const formData = new FormData();
-      formData.append("message", message);
-      if (image) formData.append("image", image);
+      const payload = {
+        message,
+        profile,
+        weatherInfo,
+        city
+      };
 
-      const response = await axiosInstance.post("/chat", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
+      const response = await axiosInstance.post("/chat", payload, {
+        headers: { "Content-Type": "application/json" },
       });
 
       toast.success("AI replied successfully ✨");
-      console.log("Farmer Message:", message);
-      console.log("AI Reply:", response?.data?.aiReply);
+  
 
       return {
         farmerMessage: message,
@@ -70,7 +72,7 @@ const chatbotSlice = createSlice({
         state.loading = false;
         state.messages.push(action.payload);
 
-        // Save updated chat in localStorage
+        
         localStorage.setItem("chatMessages", JSON.stringify(state.messages));
       })
       .addCase(sendMessage.rejected, (state, action) => {

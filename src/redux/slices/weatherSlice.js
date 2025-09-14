@@ -21,8 +21,7 @@ export const fetchWeather = createAsyncThunk(
 
       const response = await axiosInstance.get(url);
 
-      // ✅ Toast promise
-      toast.success("Weather data fetched successfully 🌤️");
+     
 
       return response.data;
     } catch (error) {
