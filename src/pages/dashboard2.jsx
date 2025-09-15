@@ -8,6 +8,9 @@ import { analyzeCropHealth, resetCropHealth } from "../redux/slices/cropHealthSl
 import { fetchUserProfile } from "../redux/slices/profileSlice";
 import ReactMarkdown from "react-markdown";
 
+import SpeechRecognition, { useSpeechRecognition } from "react-speech-recognition";
+import { Mic, MicOff } from "lucide-react"; 
+
 import {
   CloudRain,
   Camera,
@@ -60,6 +63,28 @@ export default function FarmerDashboard() {
 
   const [formData, setFormData] = useState({});
 
+
+//speech
+
+
+
+
+
+  const { transcript, listening, resetTranscript, browserSupportsSpeechRecognition } =
+    useSpeechRecognition();
+
+  useEffect(() => {
+    if (transcript) {
+      setInputText(transcript);
+    }
+  }, [transcript]);
+
+   if (!browserSupportsSpeechRecognition) {
+    return <p>Your browser does not support speech recognition.</p>;
+  }
+
+
+
   useEffect(() => {
     dispatch(fetchUserProfile());
   }, [dispatch]);
@@ -90,9 +115,12 @@ export default function FarmerDashboard() {
     if (inputText.trim()) {
       dispatch(sendMessage({ message: inputText, image: null, weatherInfo, profile, city: cityMain }));
       setInputText('');
+      resetTranscript();
+
     }
   };
 
+   
   const [image, setImage] = useState(null);
   const [language, setLanguage] = useState("English");
 
@@ -590,12 +618,20 @@ export default function FarmerDashboard() {
                       </p>
                     </div>
                   </div>
-                  <div className="p-2 border-t flex gap-2">
+                  <div className="p-2 border-t flex gap-2 items-center">
+                    <button
+                      type="button"
+                      onClick={listening ? SpeechRecognition.stopListening : () => SpeechRecognition.startListening({ continuous: true, language: 'en-IN' })}
+                      className={`p-2 rounded-full border ${listening ? 'bg-green-100 border-green-400' : 'bg-gray-100 border-gray-300'} mr-1`}
+                      title={listening ? 'Stop Listening' : 'Start Voice Input'}
+                    >
+                      {listening ? <Mic className="w-5 h-5 text-green-600 animate-pulse" /> : <MicOff className="w-5 h-5 text-gray-500" />}
+                    </button>
                     <input
                       type="text"
-                      placeholder="Type your question..."
+                      placeholder="Type or speak your question..."
                       className="flex-1 border rounded-lg p-2 text-sm"
-                      value={inputText}
+                      value={inputText || transcript}
                       onChange={(e) => setInputText(e.target.value)}
                       onKeyPress={(e) => {
                         if (e.key === 'Enter') {
