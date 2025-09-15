@@ -27,14 +27,14 @@ export default function Login() {
     e.preventDefault();
 
     if (!loginState.email || !loginState.password) {
-      toast.error(t("fill_required"));
+      toast.error(t("fill required"));
       return;
     }
 
     const apiResponse = await dispatch(login(loginState));
 
     if (login.fulfilled.match(apiResponse)) {
-      toast.success(t("login_success"));
+      
       navigate('/dashboard'); 
     } else {
       toast.error(apiResponse?.payload?.message || t("login_failed"));

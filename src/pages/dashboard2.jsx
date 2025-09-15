@@ -53,7 +53,7 @@ export default function FarmerDashboard() {
   const [isManualWeatherInput, setIsManualWeatherInput] = useState(false);
   const [manualCity, setManualCity] = useState('');
   const weatherInfo = useSelector((state) => state.weather.data);
-const profile = useSelector((state) => state.profile.user);
+  const profile = useSelector((state) => state.profile.user);
 
 
   const { user } = useSelector((state) => state.profile);
@@ -79,12 +79,12 @@ const profile = useSelector((state) => state.profile.user);
   const [inputText, setInputText] = useState('');
 
   const cityMain = navigator.geolocation.getCurrentPosition((pos) => {
-          dispatch(fetchWeather({ lat: pos.coords.latitude, lon: pos.coords.longitude }));
-        },
-        (error) => {
-          console.error('Geolocation failed, falling back to default:', error);
-          dispatch(fetchWeather({ cityMain: "munnar,kerala" }));
-        });
+    dispatch(fetchWeather({ lat: pos.coords.latitude, lon: pos.coords.longitude }));
+  },
+    (error) => {
+      console.error('Geolocation failed, falling back to default:', error);
+      dispatch(fetchWeather({ cityMain: "munnar,kerala" }));
+    });
 
   const handleChatSubmit = () => {
     if (inputText.trim()) {
@@ -464,6 +464,12 @@ const profile = useSelector((state) => state.profile.user);
                   </div>
                 </label>
               </div>
+              {image && (
+                <p className="text-sm text-green-700 font-medium">
+                  ✅ Uploaded: {image.name}
+                </p>
+              )}
+
 
               <select
                 value={language}
