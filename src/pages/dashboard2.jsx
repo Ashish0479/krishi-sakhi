@@ -70,6 +70,7 @@ export default function FarmerDashboard() {
 
 
 
+
   const { transcript, listening, resetTranscript, browserSupportsSpeechRecognition } =
     useSpeechRecognition();
 

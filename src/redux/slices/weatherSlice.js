@@ -25,7 +25,7 @@ export const fetchWeather = createAsyncThunk(
 
       return response.data;
     } catch (error) {
-      toast.error("Failed to fetch weather ❌");
+      
       return rejectWithValue(
         error.response?.data || { message: "Something went wrong" }
       );
