@@ -4,6 +4,7 @@ import WeatherSliceReducer from "./slices/weatherSlice";
  import chatbotSliceReducer from "./slices/chatbotSlice";
 import cropHealthSliceReducer from "./slices/cropHealthSlice";
 import profileSliceReducer from "./slices/profileSlice";
+import communitySliceReducer  from "./slices/communitySlice";
 
 const store = configureStore({
   reducer: {
@@ -11,7 +12,8 @@ const store = configureStore({
     weather: WeatherSliceReducer,
     chatbot: chatbotSliceReducer,
     cropHealth:cropHealthSliceReducer,
-    profile:profileSliceReducer
+    profile:profileSliceReducer,
+    community:communitySliceReducer
   },
   devTools: true,
   middleware: getDefaultMiddleware =>

@@ -3,7 +3,7 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axiosInstance from "../../api/axios";
 import toast from "react-hot-toast";
 
-// Initial State
+
 const initialState = {
   data: null,
   loading: false,
@@ -33,7 +33,7 @@ export const fetchWeather = createAsyncThunk(
   }
 );
 
-// ✅ Slice
+
 const weatherSlice = createSlice({
   name: "weather",
   initialState,

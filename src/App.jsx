@@ -7,6 +7,7 @@ import { Routes, Route } from "react-router-dom";
 import CommunityPage from "./pages/dashPages/Community";
 import GetPremium from "./pages/home pages/premium";
 import ProfilePage from "./pages/dashPages/profile";
+import Post from "./pages/dashPages/post";
 //import AboutUs from "./pages/home pages/aboutUs";
 
 export default function App() {
@@ -19,6 +20,7 @@ export default function App() {
        <Route path="/learn-more" element={<LearnMore />} />
        <Route path="/premium" element={<GetPremium />} />
         <Route path="/community" element={<CommunityPage />} />
+        <Route path="/post" element={<Post />} />
         <Route path="/profile" element={<ProfilePage />} />
          {/* <Route path="/about" element={<AboutUs />} /> */}
 
